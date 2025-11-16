@@ -60,6 +60,29 @@ class StockPicking(models.Model):
         if not self:
             return
         
+        # Check if any delivery order already has a vehicle assignment
+        already_assigned = self.filtered(lambda p: p.assignment_id)
+        
+        if already_assigned:
+            # Show which deliveries are already assigned
+            assigned_details = []
+            for picking in already_assigned:
+                assigned_details.append(
+                    "• %s → %s (Assignment: %s)" % (
+                        picking.name,
+                        picking.vehicle_id.name if picking.vehicle_id else 'Unknown',
+                        picking.assignment_id.name
+                    )
+                )
+            
+            details_text = '<br/>'.join(assigned_details)
+            
+            raise UserError(
+                "Some delivery orders are already assigned to a vehicle!\n\n"
+                "%s\n\n"
+                "Please remove them from the selection or unassign them first." % details_text
+            )
+        
         # Calculate combined weight and volume
         combined_weight = sum(self.mapped('total_weight'))
         combined_volume = sum(self.mapped('total_volume'))
