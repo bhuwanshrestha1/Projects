@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_assign_carrier_user,assign.carrier.user,model_assign_carrier,stock.group_stock_user,1,1,1,0
+access_assign_carrier_manager,assign.carrier.manager,model_assign_carrier,stock.group_stock_manager,1,1,1,1
+access_assign_carrier_picking_user,assign.carrier.picking.user,model_assign_carrier_picking,stock.group_stock_user,1,1,1,0
+access_assign_carrier_picking_manager,assign.carrier.picking.manager,model_assign_carrier_picking,stock.group_stock_manager,1,1,1,1
+access_assign_carrier_product_user,assign.carrier.product.user,model_assign_carrier_product,stock.group_stock_user,1,1,1,0
+access_assign_carrier_product_manager,assign.carrier.product.manager,model_assign_carrier_product,stock.group_stock_manager,1,1,1,1
