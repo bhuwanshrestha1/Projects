@@ -75,7 +75,7 @@ class StockPicking(models.Model):
                     )
                 )
             
-            details_text = '<br/>'.join(assigned_details)
+            details_text = '\n'.join(assigned_details)
             
             raise UserError(
                 "Some delivery orders are already assigned to a vehicle!\n\n"
@@ -222,4 +222,56 @@ class StockPicking(models.Model):
             'res_id': assignment.id,
             'view_mode': 'form',
             'target': 'current',
+        }
+
+    def action_unassign_carrier(self):
+        """
+        Remove vehicle assignment from delivery orders
+        """
+        if not self:
+            return
+        
+        # Check if any delivery has an assignment
+        assigned_pickings = self.filtered(lambda p: p.assignment_id)
+        
+        if not assigned_pickings:
+            raise UserError("No delivery orders are assigned to any vehicle!")
+        
+        # Group by assignment
+        assignments = assigned_pickings.mapped('assignment_id')
+        
+        # Prepare details for logging
+        _logger.info("=" * 80)
+        _logger.info("UNASSIGNING VEHICLE ASSIGNMENTS")
+        for assignment in assignments:
+            related_pickings = assigned_pickings.filtered(lambda p: p.assignment_id == assignment)
+            _logger.info("Assignment: %s" % assignment.name)
+            _logger.info("Vehicle: %s" % assignment.vehicle_id.name)
+            _logger.info("Deliveries: %s" % ', '.join(related_pickings.mapped('name')))
+        _logger.info("=" * 80)
+        
+        # Store assignment names for notification
+        assignment_names = ', '.join(assignments.mapped('name'))
+        
+        # Remove vehicle and assignment from pickings
+        assigned_pickings.write({
+            'vehicle_id': False,
+            'assignment_id': False
+        })
+        
+        # Delete assignment records (this will cascade delete related lines)
+        assignments.unlink()
+        
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Vehicle Assignment Removed',
+                'message': '%s delivery order(s) have been unassigned.<br/>Assignments deleted: %s' % (
+                    len(assigned_pickings),
+                    assignment_names
+                ),
+                'type': 'success',
+                'sticky': False,
+            }
         }

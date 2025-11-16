@@ -1,14 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- DATA: Sequence MUST come first -->
+    <data noupdate="1">
+        <record id="seq_assign_carrier" model="ir.sequence">
+            <field name="name">Vehicle Assignment Sequence</field>
+            <field name="code">assign.carrier</field>
+            <field name="prefix">VA/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+
     <!-- Form View -->
     <record id="view_assign_carrier_form" model="ir.ui.view">
         <field name="name">assign.carrier.form</field>
         <field name="model">assign.carrier</field>
         <field name="arch" type="xml">
             <form string="Vehicle Assignment">
-                <!-- <header>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,assigned,in_transit,done"/>
-                </header> -->
+               
                 <sheet>
                     <div class="oe_button_box" name="button_box">
                         <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-truck">
@@ -79,7 +90,7 @@
                         </page>
                     </notebook>
                 </sheet>
-               <chatter/>
+                <chatter/>
             </form>
         </field>
     </record>
@@ -155,16 +166,6 @@
                 Vehicle assignments are automatically created when you assign carriers to delivery orders.
             </p>
         </field>
-    </record>
-
-    <!-- Sequence for assignment reference -->
-    <record id="seq_assign_carrier" model="ir.sequence">
-        <field name="name">Vehicle Assignment</field>
-        <field name="code">assign.carrier</field>
-        <field name="prefix">VA/</field>
-        <field name="padding">5</field>
-        <field name="number_next">1</field>
-        <field name="number_increment">1</field>
     </record>
 
     <menuitem id="menu_assign_carrier"
