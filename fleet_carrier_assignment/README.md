@@ -23,10 +23,12 @@ Innovax Solutions
 - Real-time capacity checking and validation
 
 ### 2. Vehicle Assignment Tracking
-- Complete history of all vehicle-order assignments
-- Track which vehicles are assigned to which orders
+- Complete history of all vehicle-order assignments with unique references (VA/00001, VA/00002, etc.)
+- Track multiple delivery orders in a single assignment record
 - Monitor vehicle utilization (weight and volume percentages)
 - View assignment status and delivery progress
+- Integrated chatter for messaging and activity tracking
+- Detailed product breakdown across all deliveries
 
 ### 3. Delivery Order Enhancement
 - Display total weight and volume on delivery orders
@@ -176,28 +178,68 @@ Extended fields for delivery orders:
 
 ### 2. `assign.carrier` (New Model)
 
-Tracks vehicle-order assignment history:
+Main vehicle assignment tracking record with support for multiple deliveries:
 
 | Field | Type | Description | Stored |
 |-------|------|-------------|---------|
+| `name` | Char | Assignment reference (auto-generated: VA/00001) | Yes |
 | `vehicle_id` | Many2one | Assigned vehicle | Yes |
-| `picking_id` | Many2one | Related delivery order | Yes |
-| `partner_id` | Many2one | Customer (related from picking) | Yes |
+| `license_plate` | Char | Vehicle license plate (related) | Yes |
 | `assignment_date` | Datetime | Date and time of assignment | Yes |
-| `state` | Selection | Delivery status (related from picking) | Yes |
-| `total_weight` | Float | Weight of delivery (related) | Yes |
-| `total_volume` | Float | Volume of delivery (related) | Yes |
+| `picking_ids` | One2many | All delivery orders assigned (assign.carrier.picking) | No |
+| `delivery_count` | Integer | Number of deliveries (computed) | Yes |
+| `product_line_ids` | One2many | All products from all deliveries (assign.carrier.product) | No |
 | `vehicle_weight_capacity` | Float | Vehicle weight capacity (computed) | Yes |
 | `vehicle_volume_capacity` | Float | Vehicle volume capacity (computed) | Yes |
+| `total_weight` | Float | Combined weight of all deliveries (computed) | Yes |
+| `total_volume` | Float | Combined volume of all deliveries (computed) | Yes |
 | `weight_utilization` | Float | Weight utilization % (computed) | Yes |
 | `volume_utilization` | Float | Volume utilization % (computed) | Yes |
-| `origin` | Char | Source document (related) | Yes |
-| `scheduled_date` | Datetime | Scheduled delivery date (related) | Yes |
-| `license_plate` | Char | Vehicle license plate (related) | Yes |
+| `state` | Selection | Assignment status (draft/assigned/in_transit/done/cancel) | Yes |
+| `notes` | Text | Additional notes | Yes |
 
 **Methods:**
+- `create()`: Override to generate sequence number (VA/00001, VA/00002, etc.)
+- `_compute_delivery_count()`: Counts number of delivery orders
 - `_compute_vehicle_capacity()`: Computes vehicle capacity from category
+- `_compute_totals()`: Calculates combined weight and volume from all pickings
 - `_compute_utilization()`: Calculates weight and volume utilization percentages
+
+### 3. `assign.carrier.picking` (New Model)
+
+Links delivery orders to vehicle assignments:
+
+| Field | Type | Description | Stored |
+|-------|------|-------------|---------|
+| `assignment_id` | Many2one | Parent assignment record | Yes |
+| `picking_id` | Many2one | Delivery order reference | Yes |
+| `partner_id` | Many2one | Customer (related from picking) | Yes |
+| `origin` | Char | Source document (related) | Yes |
+| `scheduled_date` | Datetime | Scheduled delivery date (related) | Yes |
+| `state` | Selection | Delivery status (related from picking) | Yes |
+| `total_weight` | Float | Weight of this delivery (related) | Yes |
+| `total_volume` | Float | Volume of this delivery (related) | Yes |
+
+### 4. `assign.carrier.product` (New Model)
+
+Detailed product lines for each delivery in the assignment:
+
+| Field | Type | Description | Stored |
+|-------|------|-------------|---------|
+| `assignment_id` | Many2one | Parent assignment record | Yes |
+| `picking_id` | Many2one | Related delivery order | Yes |
+| `picking_name` | Char | Delivery order reference (related) | Yes |
+| `move_id` | Many2one | Stock move reference | Yes |
+| `product_id` | Many2one | Product (related from move) | Yes |
+| `product_uom_qty` | Float | Quantity (related) | Yes |
+| `product_uom` | Many2one | Unit of measure (related) | Yes |
+| `weight` | Float | Unit weight in kg (related) | Yes |
+| `volume` | Float | Unit volume in m³ (related) | Yes |
+| `total_weight` | Float | Total weight = qty × weight (computed) | Yes |
+| `total_volume` | Float | Total volume = qty × volume (computed) | Yes |
+
+**Methods:**
+- `_compute_totals()`: Calculates total weight and volume for the line
 
 ---
 
@@ -237,42 +279,62 @@ New grouping:
 File: `views/assign_carrier_views.xml`
 
 Displays all vehicle assignments with:
+- Assignment Reference (VA/00001, VA/00002, etc.)
 - Assignment Date
 - Vehicle Name
 - License Plate
-- Delivery Order
-- Customer
-- Source Document
-- Weight and Volume
-- Vehicle Capacities
-- Utilization Percentages (with percentage widget)
-- Delivery Status (with color decorations)
-- Scheduled Date
+- Number of Deliveries (delivery_count)
+- Total Weight (combined)
+- Total Volume (combined)
+- Vehicle Weight Capacity (optional, hidden by default)
+- Vehicle Volume Capacity (optional, hidden by default)
+- Weight Utilization % (optional, hidden by default, progressbar widget)
+- Volume Utilization % (optional, hidden by default, progressbar widget)
+- Status (optional, hidden by default)
 
 Color decorations:
 - Blue: Draft
-- Orange: Waiting/Confirmed/Assigned
+- Orange: Assigned
 - Green: Done
 - Red: Cancelled
 
 #### Form View
-Organized sections:
-1. **Assignment Information**: Vehicle, license plate, date, status
-2. **Delivery Information**: Order reference, customer, origin, scheduled date
-3. **Load Details**: Total weight and volume
-4. **Vehicle Capacity**: Weight and volume capacity
-5. **Utilization**: Percentage usage of weight and volume
+File: `views/assign_carrier_views.xml`
+
+**Button Box:**
+- Deliveries stat button showing delivery count
+
+**Header:**
+- Assignment Reference (name field)
+
+**Organized Groups:**
+1. **Vehicle Information**: Vehicle, license plate, weight capacity, volume capacity
+2. **Assignment Details**: Assignment date, delivery count, total weight, total volume
+3. **Utilization**: Weight and volume utilization (progressbar widgets)
+
+**Notebook Tabs:**
+1. **Delivery Orders**: List of all delivery orders in this assignment
+   - Shows: Delivery reference, customer, origin, scheduled date, weight, volume, status
+   - Color decorations by delivery status
+   - Sums total weight and volume
+
+2. **Products**: Detailed product list from all deliveries
+   - Shows: Delivery reference, product, quantity, unit, unit weight, unit volume, total weight, total volume
+   - Sums total weight and volume
+
+3. **Notes**: Text area for additional notes
+
+**Chatter:**
+- Integrated messaging and activity tracking
 
 #### Search View
 Filters:
 - **Today**: Assignments created today
 - **This Week**: Assignments created this week
-- **Draft/Waiting/Ready/Done**: Filter by delivery status
+- **Draft/Assigned/In Transit/Done**: Filter by assignment status
 
 Group By options:
 - Vehicle
-- Customer
-- Delivery Order
 - Assignment Date
 - Status
 
@@ -291,9 +353,12 @@ The module uses a best-fit algorithm to optimize vehicle selection:
    - Consider both weight AND volume constraints
 3. **Sort by Capacity**: Sort suitable vehicles from smallest to largest
 4. **Select Best Fit**: Pick the smallest vehicle that can carry the load
-5. **Assign Vehicle**: Set the same vehicle to all selected deliveries
-6. **Create Records**: Generate assignment records for tracking
-7. **Notify Users**: Post messages in delivery and vehicle chatters
+5. **Create Assignment Record**: Generate a single assignment record (assign.carrier) with unique reference (VA/00001)
+6. **Link Delivery Orders**: Create picking lines (assign.carrier.picking) for each delivery
+7. **Link Products**: Create product lines (assign.carrier.product) for all products across all deliveries
+8. **Update Deliveries**: Set vehicle_id and assignment_id on all delivery orders
+9. **Post Message**: Add message to assignment chatter with details and utilization
+10. **Open Form**: Return action to display the created assignment record
 
 ### Capacity Validation
 
@@ -326,11 +391,14 @@ Volume utilization:
 File: `security/ir.model.access.csv`
 
 ### Stock Users (group_stock_user)
-- **Fleet Vehicle**: Read-only access
-- **Assign Carrier**: Read-only access
+- **assign.carrier**: Read, Write, Create access (no delete)
+- **assign.carrier.picking**: Read, Write, Create access (no delete)
+- **assign.carrier.product**: Read, Write, Create access (no delete)
 
 ### Stock Managers (group_stock_manager)
-- **Assign Carrier**: Full access (create, read, write, delete)
+- **assign.carrier**: Full access (create, read, write, delete)
+- **assign.carrier.picking**: Full access (create, read, write, delete)
+- **assign.carrier.product**: Full access (create, read, write, delete)
 
 ---
 
@@ -357,13 +425,18 @@ fleet_carrier_assignment/
 ├── models/
 │   ├── __init__.py
 │   ├── stock_picking.py        # Delivery order extension
-│   └── assign_carrier.py       # Assignment tracking model
+│   └── assign_carrier.py       # Assignment tracking models (3 models)
+│                               #   - assign.carrier
+│                               #   - assign.carrier.picking
+│                               #   - assign.carrier.product
 ├── views/
 │   ├── stock_picking_views.xml # Delivery order view enhancements
-│   └── assign_carrier_views.xml # Assignment views and menu
+│   └── assign_carrier_views.xml # Assignment views, menu, and sequence
 ├── security/
-│   └── ir.model.access.csv     # Access rights configuration
-└── README.md                    # This file
+│   └── ir.model.access.csv     # Access rights for all models
+├── README.md                    # This file
+├── QUICKSTART.md                # Quick start guide
+└── .gitignore                   # Git ignore file
 ```
 
 ### Dependencies
@@ -374,6 +447,7 @@ fleet_carrier_assignment/
     'fleet',      # Fleet Management
     'sale',       # Sales Management
     'delivery',   # Delivery Management
+    'mail',       # Messaging and Activity features
 ]
 ```
 

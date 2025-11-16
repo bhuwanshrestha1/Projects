@@ -55,18 +55,24 @@
 
 5. **Result**:
    - Vehicle automatically assigned
-   - Notification shows which vehicle was selected
-   - Assignment record created
+   - Assignment record created with unique reference (VA/00001)
+   - Assignment form opens automatically
+   - Chatter message shows assignment details
 
 ### View the Assignment
 
-1. **Go to Inventory → Vehicle Assignments → Vehicle Assignments**
+1. **Assignment form opens automatically** or **Go to Inventory → Vehicle Assignments → Vehicle Assignments**
 2. **See the new record** with:
-   - Vehicle name
-   - Delivery order
-   - Customer
-   - Weight/volume
+   - Assignment reference (VA/00001)
+   - Vehicle name and license plate
+   - Number of deliveries
+   - Combined weight/volume
    - Utilization percentage
+   - Three notebook tabs:
+     - **Delivery Orders**: List of all delivery orders in this assignment
+     - **Products**: Detailed product breakdown
+     - **Notes**: Additional notes area
+   - Chatter for messages and activities
 
 ---
 
@@ -99,12 +105,15 @@
 1. Go to delivery orders list
 2. Select multiple deliveries (checkboxes)
 3. Click **Actions** → **Assign Carrier**
-4. System assigns ONE vehicle to ALL deliveries
+4. System creates ONE assignment record for ALL deliveries
 
 **Example**:
 - 3 deliveries: 100 kg + 150 kg + 200 kg = 450 kg total
 - Selected vehicle: Small Van (500 kg capacity)
 - Utilization: 90%
+- Single assignment record (VA/00001) with 3 delivery orders
+- All delivery orders linked to same vehicle
+- Products tab shows all items from all 3 deliveries
 
 ---
 
@@ -127,10 +136,14 @@
 **Use Case**: See what each vehicle is delivering
 
 **Steps**:
-1. Go to **Inventory → Vehicle Assignments**
+1. Go to **Inventory → Vehicle Assignments → Vehicle Assignments**
 2. Click **Group By** → **Vehicle**
 3. See all assignments grouped by vehicle
-4. Expand each vehicle to see deliveries
+4. Expand each vehicle to see all assignment records
+5. Click on an assignment to see:
+   - **Delivery Orders** tab: All deliveries in this assignment
+   - **Products** tab: Complete product list across all deliveries
+   - Utilization metrics
 
 ---
 
@@ -279,11 +292,17 @@ Before assigning, check vehicle assignments to avoid double-booking.
 │ ASSIGN:                                         │
 │  • Single: Select delivery → Assign Carrier     │
 │  • Batch: Select multiple → Actions → Assign   │
+│  • Result: Assignment form opens (VA/00001)     │
 │                                                 │
 │ VIEW ASSIGNMENTS:                               │
 │  • Inventory → Vehicle Assignments              │
 │  • Filter by: Today, This Week, Status          │
-│  • Group by: Vehicle, Customer, Date            │
+│  • Group by: Vehicle, Assignment Date, Status   │
+│  • Assignment form shows:                       │
+│    - Delivery Orders tab (all deliveries)       │
+│    - Products tab (all items)                   │
+│    - Notes tab                                  │
+│    - Chatter (messages & activities)            │
 │                                                 │
 │ TROUBLESHOOT:                                   │
 │  • No weight? → Set product weight              │
@@ -294,6 +313,7 @@ Before assigning, check vehicle assignments to avoid double-booking.
 │  • Target 70-90% utilization                    │
 │  • Batch deliveries for same route              │
 │  • Use smallest suitable vehicle                │
+│  • Track via assignment reference (VA/00001)    │
 │                                                 │
 └─────────────────────────────────────────────────┘
 ```
@@ -321,16 +341,20 @@ Before assigning, check vehicle assignments to avoid double-booking.
 
 3. **Assign vehicles**
    - Select North orders → Assign Carrier
-     - Result: Medium Truck (85% utilization)
+     - Result: Assignment VA/00001 - Medium Truck (85% utilization, 15 deliveries)
    - Select South orders → Assign Carrier
-     - Result: Medium Truck (92% utilization)
+     - Result: Assignment VA/00002 - Medium Truck (92% utilization, 20 deliveries)
    - Select East orders → Assign Carrier
-     - Result: Small Van (78% utilization)
+     - Result: Assignment VA/00003 - Small Van (78% utilization, 10 deliveries)
 
 4. **Review assignments**
    - Go to Vehicle Assignments
-   - Group by Vehicle
-   - Print delivery sheets
+   - See 3 assignment records (VA/00001, VA/00002, VA/00003)
+   - Group by Vehicle to see which trucks have which assignments
+   - Open each assignment to see:
+     - Delivery Orders tab: All deliveries for that route
+     - Products tab: Complete packing list
+   - Print delivery sheets from assignment records
 
 5. **Dispatch**
    - Drivers collect delivery sheets
