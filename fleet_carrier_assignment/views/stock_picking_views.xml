@@ -12,8 +12,21 @@ if records:
     action = records.action_assign_carrier()
         </field>
     </record>
+
+    <!-- Add Unassign Carrier Action in Tree View -->
+    <record id="action_unassign_carrier_tree" model="ir.actions.server">
+        <field name="name">Unassign Carrier</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">
+if records:
+    action = records.action_unassign_carrier()
+        </field>
+    </record>
     
-    <!-- Add vehicle field to form view -->
+     <!-- Add vehicle field to form view -->
     <record id="view_picking_form_inherit_fleet" model="ir.ui.view">
         <field name="name">stock.picking.form.fleet</field>
         <field name="model">stock.picking</field>
@@ -22,7 +35,10 @@ if records:
             <!-- Add vehicle and weight fields -->
             <xpath expr="//field[@name='origin']" position="after">
                 <field name="vehicle_id" 
-                       options="{'no_create': True}"/>
+                       options="{'no_create': True}"
+                       readonly="1"/>
+                <field name="assignment_id" 
+                       readonly="1"/>
                 <field name="total_weight"/>
                 <field name="total_volume"/>
             </xpath>
@@ -37,6 +53,7 @@ if records:
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after">
                 <field name="vehicle_id" optional="show"/>
+                <field name="assignment_id" optional="hide"/>
                 <field name="total_weight" optional="show"/>
                 <field name="total_volume" optional="show"/>
             </xpath>
@@ -56,6 +73,7 @@ if records:
             </xpath>
             <xpath expr="//group" position="inside">
                 <filter string="Vehicle" name="group_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                <filter string="Assignment" name="group_assignment" context="{'group_by': 'assignment_id'}"/>
             </xpath>
         </field>
     </record>

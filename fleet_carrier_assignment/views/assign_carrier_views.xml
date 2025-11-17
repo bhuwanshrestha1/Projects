@@ -19,27 +19,81 @@
         <field name="model">assign.carrier</field>
         <field name="arch" type="xml">
             <form string="Vehicle Assignment">
-               
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,assigned,in_transit,done,cancel"/>
+
+                    <!-- Set Assigned button - only visible in Draft state -->
+                    <button name="action_set_assigned" 
+                            type="object" 
+                            string="Assign" 
+                            class="btn-primary" 
+                            invisible="state != 'draft'"/>
+
+                    <!-- Set In Transit button (DISPATCH) - only visible in Assigned state -->
+                    <button name="action_set_in_transit" 
+                            type="object" 
+                            string="Dispatch" 
+                            class="btn-primary" 
+                            invisible="state != 'assigned'"
+                            help="Dispatch vehicle - Vehicle status will change to 'In Use'"/>
+
+                    <!-- Set Done button - only visible in In Transit state -->
+                    <button name="action_set_done" 
+                            type="object" 
+                            string="Done" 
+                            class="btn-primary" 
+                            invisible="state != 'in_transit'"
+                            help="Mark as completed - Vehicle status will change to 'Available'"/>
+
+                    <button name="action_set_cancel" 
+                            type="object" 
+                            string="Cancel" 
+                            class="btn btn-danger" 
+                            invisible="state not in ['assigned', 'in_transit']"
+                            confirm="Are you sure you want to cancel this assignment? The vehicle will be set to 'Available'."/>
+
+                    <!-- Set Draft button - visible in Cancel state -->
+                    <button name="action_set_draft" 
+                            type="object" 
+                            string="Reset to Draft" 
+                            class="oe_highlight" 
+                            invisible="state != 'cancel'"/>
+                </header>
+
                 <sheet>
-                    <div class="oe_button_box" name="button_box">
-                        <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-truck">
-                            <field name="delivery_count" widget="statinfo" string="Deliveries"/>
-                        </button>
-                    </div>
                     <div class="oe_title">
                         <h1>
                             <field name="name" readonly="1"/>
                         </h1>
                     </div>
+                    
+                    <!-- ADD: Vehicle Status Widget (conditional display) -->
+                    
+                        <widget name="web_ribbon" title="Available" bg_color="text-bg-success" invisible="vehicle_availability != 'available'"/>
+                        <widget name="web_ribbon" title="In Use" bg_color="text-bg-warning" invisible="vehicle_availability != 'in_use'"/>
+                        <widget name="web_ribbon" title="Reserved" bg_color="text-bg-info" invisible="vehicle_availability != 'reserved'"/>
+                        <widget name="web_ribbon" title="Maintenance" bg_color="text-bg-danger" invisible="vehicle_availability != 'maintenance'"/>
+                        <widget name="web_ribbon" title="Out of Service" bg_color="text-bg-dark" invisible="vehicle_availability != 'out_of_service'"/>
+                   
+                    
                     <group>
                         <group string="Vehicle Information">
-                            <field name="vehicle_id"/>
+                            <field name="vehicle_id" 
+                                   readonly="state in ['in_transit', 'done', 'cancel']"
+                                   options="{'no_create': True}"/>
                             <field name="license_plate"/>
+                            <field name="vehicle_availability" 
+                                   widget="badge"
+                                   decoration-success="vehicle_availability == 'available'"
+                                   decoration-warning="vehicle_availability == 'in_use'"
+                                   decoration-info="vehicle_availability == 'reserved'"
+                                   decoration-danger="vehicle_availability in ['maintenance', 'out_of_service']"
+                                   invisible="not vehicle_availability"/>
                             <field name="vehicle_weight_capacity"/>
                             <field name="vehicle_volume_capacity"/>
                         </group>
                         <group string="Assignment Details">
-                            <field name="assignment_date"/>
+                            <field name="assignment_date" readonly="state in ['in_transit', 'done', 'cancel']"/>
                             <field name="delivery_count"/>
                             <field name="total_weight"/>
                             <field name="total_volume"/>
@@ -51,13 +105,13 @@
                             <field name="volume_utilization" widget="progressbar"/>
                         </group>
                     </group>
-                    
+
                     <notebook>
                         <page string="Delivery Orders" name="delivery_orders">
-                            <field name="picking_ids">
+                            <field name="picking_ids" readonly="state in ['in_transit', 'done', 'cancel']">
                                 <list decoration-info="state == 'draft'" 
-                                      decoration-warning="state in ('waiting', 'confirmed', 'assigned')"
-                                      decoration-success="state == 'done'"
+                                      decoration-warning="state in ('waiting', 'confirmed', 'assigned')" 
+                                      decoration-success="state == 'done'" 
                                       decoration-danger="state == 'cancel'">
                                     <field name="picking_id"/>
                                     <field name="partner_id"/>
@@ -69,9 +123,9 @@
                                 </list>
                             </field>
                         </page>
-                        
+
                         <page string="Products" name="products">
-                            <field name="product_line_ids">
+                            <field name="product_line_ids" readonly="state in ['in_transit', 'done', 'cancel']">
                                 <list>
                                     <field name="picking_name"/>
                                     <field name="product_id"/>
@@ -84,9 +138,9 @@
                                 </list>
                             </field>
                         </page>
-                        
+
                         <page string="Notes" name="notes">
-                            <field name="notes" placeholder="Add notes here..."/>
+                            <field name="notes" placeholder="Add notes here..." readonly="state in ['done', 'cancel']"/>
                         </page>
                     </notebook>
                 </sheet>
@@ -100,23 +154,34 @@
         <field name="name">assign.carrier.list</field>
         <field name="model">assign.carrier</field>
         <field name="arch" type="xml">
-            <list string="Vehicle Assignments" default_order="assignment_date desc">
+            <list string="Vehicle Assignments" default_order="name desc">
                 <field name="name"/>
                 <field name="assignment_date"/>
                 <field name="vehicle_id"/>
                 <field name="license_plate"/>
+                <field name="vehicle_availability" 
+                       widget="badge"
+                       decoration-success="vehicle_availability == 'available'"
+                       decoration-warning="vehicle_availability == 'in_use'"
+                       decoration-info="vehicle_availability == 'reserved'"
+                       decoration-danger="vehicle_availability in ['maintenance', 'out_of_service']"
+                       optional="show"/>
                 <field name="delivery_count"/>
                 <field name="total_weight"/>
                 <field name="total_volume"/>
+
                 <field name="vehicle_weight_capacity" optional="hide"/>
                 <field name="vehicle_volume_capacity" optional="hide"/>
                 <field name="weight_utilization" widget="progressbar" optional="hide"/>
                 <field name="volume_utilization" widget="progressbar" optional="hide"/>
-                <field name="state"
-                       decoration-info="state == 'draft'"
-                       decoration-warning="state == 'assigned'"
-                       decoration-success="state == 'done'"
-                       decoration-danger="state == 'cancel'" optional="hide"/>
+                <field name="state" 
+                       optional="show" 
+                       widget="badge" 
+                       decoration-danger="state=='cancel'" 
+                       decoration-info="state== 'assigned'" 
+                       decoration-muted="state == 'draft'" 
+                       decoration-success="state == 'done'" 
+                       decoration-warning="state not in ('draft','cancel','done','assigned')"/>
             </list>
         </field>
     </record>
@@ -131,10 +196,10 @@
                 <field name="vehicle_id"/>
                 <field name="license_plate"/>
                 <separator/>
-                <filter string="Today" name="today"
+                <filter string="Today" name="today" 
                         domain="[('assignment_date', '&gt;=', datetime.datetime.now().replace(hour=0, minute=0, second=0)),
                                 ('assignment_date', '&lt;=', datetime.datetime.now().replace(hour=23, minute=59, second=59))]"/>
-                <filter string="This Week" name="this_week"
+                <filter string="This Week" name="this_week" 
                         domain="[('assignment_date', '&gt;=', (context_today() - datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d')),
                                 ('assignment_date', '&lt;=', (context_today() + datetime.timedelta(days=6-context_today().weekday())).strftime('%Y-%m-%d'))]"/>
                 <separator/>
@@ -143,10 +208,20 @@
                 <filter string="In Transit" name="in_transit" domain="[('state', '=', 'in_transit')]"/>
                 <filter string="Done" name="done" domain="[('state', '=', 'done')]"/>
                 <separator/>
+                <!-- ADD: Filters for vehicle availability -->
+                <filter string="Vehicle Available" name="vehicle_available" 
+                        domain="[('vehicle_availability', '=', 'available')]"/>
+                <filter string="Vehicle In Use" name="vehicle_in_use" 
+                        domain="[('vehicle_availability', '=', 'in_use')]"/>
+                <filter string="Vehicle Reserved" name="vehicle_reserved" 
+                        domain="[('vehicle_availability', '=', 'reserved')]"/>
+                <separator/>
                 <group>
                     <filter string="Vehicle" name="group_vehicle" context="{'group_by': 'vehicle_id'}"/>
                     <filter string="Assignment Date" name="group_assignment_date" context="{'group_by': 'assignment_date'}"/>
                     <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Vehicle Availability" name="group_vehicle_availability" 
+                            context="{'group_by': 'vehicle_availability'}"/>
                 </group>
             </search>
         </field>
@@ -168,9 +243,9 @@
         </field>
     </record>
 
-    <menuitem id="menu_assign_carrier"
-              name="Vehicle Assignments"
-              parent="stock.menu_stock_warehouse_mgmt"
-              action="action_assign_carrier"
+    <menuitem id="menu_assign_carrier" 
+              name="Vehicle Assignments" 
+              parent="stock.menu_stock_warehouse_mgmt" 
+              action="action_assign_carrier" 
               sequence="10"/>
 </odoo>
